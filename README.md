@@ -39,11 +39,11 @@ This report presents the implementation and evaluation of **Monocular Visual Odo
 
 | Metric | Value | Description |
 |--------|-------|-------------|
-| **ATE RMSE** | **132.1547 m** | Global accuracy after Sim(3) alignment (scale corrected) |
-| **RPE Trans Drift** | **2.8701 m/m** | Translation drift rate (mean error per meter, delta=10 m) |
-| **RPE Rot Drift** | **173.3319 deg/100m** | Rotation drift rate (mean angle per 100 m, delta=10 m) |
-| **Completeness** | **87.01%** | Matched poses / total ground-truth poses (1701 / 1955) |
-| **Estimated poses** | 2,826 | Trajectory poses in `CameraTrajectory.txt` |
+| **ATE RMSE** | **2.006944 m** | Global accuracy after Sim(3) alignment (scale corrected) |
+| **RPE Trans Drift** | **1.904395 m/m** | Translation drift rate (mean error per meter, delta=10 m) |
+| **RPE Rot Drift** | **126.961733 deg/100m** | Rotation drift rate (mean angle per 100 m, delta=10 m) |
+| **Completeness** | **78.36%** | Matched poses / total ground-truth poses (1701 / 1955) |
+| **Estimated poses** | 1,532 | Trajectory poses in `CameraTrajectory.txt` |
 
 ---
 
@@ -236,7 +236,7 @@ The dataset is from the **MARS-LVIG** UAV dataset, captured over Hong Kong Islan
 | **Dataset Name** | HKisland_GNSS03 |
 | **Source** | MARS-LVIG / UAVScenes |
 | **Duration** | 390.78 seconds (~6.5 minutes) |
-| **Total Images** | 3,833 frames |
+| **Total Images** | 1,955 frames |
 | **Image Resolution** | 2448 × 2048 pixels |
 | **Frame Rate** | ~10 Hz |
 | **Trajectory Length** | ~1,900 meters |
@@ -271,12 +271,14 @@ RTK (Real-Time Kinematic) GPS provides centimeter-level positioning accuracy:
 | **Framework** | ORB-SLAM3 (C++) |
 | **Mode** | Monocular Visual Odometry |
 | **Vocabulary** | ORBvoc.txt (pre-trained) |
-| **Operating System** | Linux (Ubuntu 22.04) |
+| **Operating System** | WSL2 (Ubuntu 20.04) |
 
 ### Camera Calibration
 
 ```yaml
 Camera.type: "PinHole"
+
+# Camera calibration and distortion parameters (OpenCV) 
 Camera.fx: 1444.43
 Camera.fy: 1444.34
 Camera.cx: 1179.50
@@ -288,10 +290,17 @@ Camera.p1: 0.00122
 Camera.p2: 0.00064
 Camera.k3: -0.0627
 
+# Camera resolution
 Camera.width: 2448
 Camera.height: 2048
+
+# Camera frames per second 
 Camera.fps: 10.0
-Camera.RGB: 0  # OpenCV images are typically BGR by default
+
+# Color order of the images (0: BGR, 1: RGB. It is ignored if images are grayscale)
+Camera.RGB: 0
+
+# OpenCV images are typically BGR by default
 ```
 
 **Note on ORB-SLAM3 settings format**:
@@ -304,10 +313,10 @@ Camera.RGB: 0  # OpenCV images are typically BGR by default
 | Parameter | Value | Description |
 |-----------|-------|-------------|
 | `nFeatures` | 1500 | Features per frame |
-| `scaleFactor` | 1.2 | Pyramid scale factor |
-| `nLevels` | 8 | Pyramid levels |
-| `iniThFAST` | 20 | Initial FAST threshold |
-| `minThFAST` | 7 | Minimum FAST threshold |
+| `scaleFactor` | 1.67 | Pyramid scale factor |
+| `nLevels` | 12 | Pyramid levels |
+| `iniThFAST` | 21 | Initial FAST threshold |
+| `minThFAST` | 9 | Minimum FAST threshold |
 
 ### Running ORB-SLAM3 (example)
 
@@ -326,23 +335,23 @@ VISUAL ODOMETRY EVALUATION RESULTS
 
 Ground Truth: RTK trajectory (1,955 poses)
 Estimated:    ORB-SLAM3 camera trajectory (2,826 poses)
-Matched Poses: 1,701 / 1,955 (87.01%)  ← Completeness
+Matched Poses: 1,532 / 1,955 (87.01%)  ← Completeness
 
 METRIC 1: ATE (Absolute Trajectory Error)
 ────────────────────────────────────────
-RMSE:   132.1547 m
-Mean:   114.6344 m
-Std:    65.7558 m
+RMSE:   2.030041 m
+Mean:   1.873935 m
+Std:    0.780663 m
 
 METRIC 2: RPE Translation Drift (distance-based, delta=10 m)
 ────────────────────────────────────────
-Mean translational RPE over 10 m: 28.7014 m
-Translation drift rate:           2.8701 m/m
+Mean translational RPE over 10 m: 19.043952 m
+Translation drift rate:           1.904395 m/m
 
 METRIC 3: RPE Rotation Drift (distance-based, delta=10 m)
 ────────────────────────────────────────
-Mean rotational RPE over 10 m: 17.3332 deg
-Rotation drift rate:        173.3319 deg/100m
+Mean rotational RPE over 10 m: 12.696173 deg
+Rotation drift rate:        126.961733 deg/100m
 
 ================================================================================
 ```
@@ -360,10 +369,10 @@ Rotation drift rate:        173.3319 deg/100m
 
 | Metric | Value | Grade | Interpretation |
 |--------|-------|-------|----------------|
-| **ATE RMSE** | 132.15 m | F | Very large global error after alignment |
-| **RPE Trans Drift** | 2.87 m/m | D | Large local drift per traveled distance |
-| **RPE Rot Drift** | 173.33 deg/100m | F | Severe orientation drift |
-| **Completeness** | 87.01% | B | Many poses can be evaluated, but accuracy is low |
+| **ATE RMSE** | 2.030041 m | B | Less global error after alignment |
+| **RPE Trans Drift** | 1.904395 m/m | B | Less local drift per traveled distance |
+| **RPE Rot Drift** | 126.961733 deg/100m | E | Severe orientation drift |
+| **Completeness** | 78.36% | B | Many poses can be evaluated, but accuracy is low |
 
 ---
 
@@ -371,7 +380,8 @@ Rotation drift rate:        173.3319 deg/100m
 
 ### Trajectory Comparison
 
-![Trajectory Evaluation](figures/trajectory_evaluation.png)
+<img width="2400" height="2400" alt="trajectory_evaluation" src="https://github.com/user-attachments/assets/450bc0e5-340b-4be9-ab04-a6a5a424c02f" />
+
 
 This figure is generated from the same inputs used for evaluation (`ground_truth.txt` and `CameraTrajectory.txt`) and includes:
 
@@ -380,7 +390,7 @@ This figure is generated from the same inputs used for evaluation (`ground_truth
 3. **Bottom-Left**: Distribution of ATE translation errors (meters) over all matched poses.
 4. **Bottom-Right**: ATE translation error as a function of the matched pose index (highlights where drift accumulates).
 
-**Reproducibility**: the figure can be regenerated using `scripts/generate_report_figures.py` together with the `--save_results` output from `evo_ape`.
+**Reproducibility**: the figure can be regenerated using together with the output from .scripts/generate_report_figures.py--save_resultsevo_ape .
 
 ---
 
@@ -414,19 +424,19 @@ This figure is generated from the same inputs used for evaluation (`ground_truth
 
 This assignment demonstrates monocular Visual Odometry implementation using ORB-SLAM3 on UAV aerial imagery. Key findings:
 
-1. ✅ **System Operation**: ORB-SLAM3 successfully processes 3,833 images over 1.9 km trajectory
-2. ✅ **Evaluation coverage**: 87.01% completeness shows that many poses can be evaluated against RTK ground truth
-3. ⚠️ **Tracking stability**: Frequent tracking failures indicate the need for parameter tuning and stronger robustness measures
-4. ❌ **Accuracy**: The current baseline exhibits very large global error and drift rates on this sequence
+1. ✅ **System Operation**: ORB-SLAM3 successfully processes 1,955 images over 1.9 km trajectory
+2. ✅ **Evaluation coverage**: 78.36% completeness shows that many poses can be evaluated against RTK ground truth
+3. ⚠️ **Tracking stability**: Exist tracking failures indicate the need for parameter tuning and stronger robustness measures
+4. ⚠️ **Accuracy**: The current baseline exhibits worse, but still acceptable global error and drift rates on this sequence
 
 ### Recommendations for Improvement
 
 | Priority | Action | Expected Improvement |
 |----------|--------|---------------------|
 | High | Increase `nFeatures` to 2000-2500 | 30-40% ATE reduction |
-| High | Lower FAST thresholds (15/5) | 20-30% RPE reduction |
+| Medium | Lower FAST thresholds (15/5) | 20-30% RPE reduction |
 | Medium | Verify camera calibration | 15-25% overall improvement |
-| Low | Enable IMU fusion (VIO mode) | 50-70% accuracy improvement |
+| High | Enable IMU fusion (VIO mode) | 50-70% accuracy improvement |
 
 ---
 
@@ -491,6 +501,15 @@ python3 scripts/evaluate_vo_accuracy.py \
     --json-out evaluation_results/metrics.json
 ```
 
+### C. Output Trajectory Format (TUM)
+
+```
+# timestamp x y z qx qy qz qw
+1698132964.499888 0.0000000 0.0000000 0.0000000 -0.0000000 -0.0000000 -0.0000000 1.0000000
+1698132964.599976 -0.0198950 0.0163751 -0.0965251 -0.0048082 0.0122335 0.0013237 0.9999127
+...
+```
+
 ### D. Native evo Commands (Recommended)
 
 If you prefer to run evo directly (no custom scripts), use:
@@ -514,15 +533,7 @@ evo_rpe tum ground_truth.txt CameraTrajectory.txt \
   --t_max_diff 0.1 \
   --delta 10 --delta_unit m \
   --pose_relation angle_deg -va
-```
 
-### C. Output Trajectory Format (TUM)
-
-```
-# timestamp x y z qx qy qz qw
-1698132964.499888 0.0000000 0.0000000 0.0000000 -0.0000000 -0.0000000 -0.0000000 1.0000000
-1698132964.599976 -0.0198950 0.0163751 -0.0965251 -0.0048082 0.0122335 0.0013237 0.9999127
-...
 ```
 
 ---
